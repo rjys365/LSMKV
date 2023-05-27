@@ -1,7 +1,7 @@
 #pragma once
 
-#include <set>
 #include <algorithm>
+#include <set>
 
 #include "SSTable.h"
 
@@ -75,10 +75,11 @@ class Level {
       int i = 0;
       for (auto it = this->sstables.begin();
            it != this->sstables.end() &&
-           i < this->sstables.size() - this->maxSize;
+           i < (int)this->sstables.size() - this->maxSize;
            it++) {
         thisLevelSelected.push_back(it);
       }
     }
   }
+  bool overSized() { return (int)this->sstables.size() > this->maxSize; }
 };

@@ -46,6 +46,7 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
 }
 
 void KVStore::saveMemTable() {
+  if(memTable.itemCnt()==0)return;
   maxTimeStamp++;
   if (!utils::dirExists(dir + "/level-0")) {
     utils::mkdir((dir + "/level-0").c_str());
@@ -64,7 +65,7 @@ void KVStore::saveMemTable() {
 KVStore::~KVStore() { saveMemTable(); }
 
 void KVStore::compact(){
-  
+
 }
 
 /**

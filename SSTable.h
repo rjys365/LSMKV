@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "BloomFilter.h"
+#include "file_ops.h"
 #include "kvstore_exceptions.h"
 struct SSTable {
   std::string filename = "";
-  static constexpr int HEADER_SIZE = 32;
+  static constexpr ssize_t HEADER_SIZE = 32;
   uint64_t dataSize = 0;
   uint64_t timestamp, count, minKey, maxKey;
   BloomFilter bloomFilter;
@@ -52,30 +53,30 @@ struct SSTable {
   ~SSTable() { delete[] data; }
 
   void toFile(const std::string &filename) {
-    uint64_t byteCnt=0;
+    uint64_t byteCnt = 0;
     this->filename = filename;
     if (data == nullptr) return;
     std::fstream out;
     out.open(filename, std::ios::out | std::ios::trunc | std::ios::binary);
     out.seekp(0);
     out.write(reinterpret_cast<const char *>(&timestamp), sizeof(uint64_t));
-    byteCnt+=sizeof(uint64_t);
+    byteCnt += sizeof(uint64_t);
     out.write(reinterpret_cast<const char *>(&count), sizeof(uint64_t));
-    byteCnt+=sizeof(uint64_t);
+    byteCnt += sizeof(uint64_t);
     out.write(reinterpret_cast<const char *>(&minKey), sizeof(uint64_t));
-    byteCnt+=sizeof(uint64_t);
+    byteCnt += sizeof(uint64_t);
     out.write(reinterpret_cast<const char *>(&maxKey), sizeof(uint64_t));
-    byteCnt+=sizeof(uint64_t);
+    byteCnt += sizeof(uint64_t);
     out.write(reinterpret_cast<const char *>(bloomFilter.getDataPtr()),
               BloomFilter::SIZE * sizeof(bool));
-    byteCnt+=BloomFilter::SIZE * sizeof(bool);
+    byteCnt += BloomFilter::SIZE * sizeof(bool);
     for (const auto &pair : mapping) {
       out.write(reinterpret_cast<const char *>(&pair.first), sizeof(uint64_t));
       out.write(reinterpret_cast<const char *>(&pair.second), sizeof(uint64_t));
-      byteCnt+=sizeof(uint64_t)+sizeof(uint64_t);
+      byteCnt += sizeof(uint64_t) + sizeof(uint64_t);
     }
     out.write(reinterpret_cast<const char *>(data), dataSize * sizeof(char));
-    byteCnt+=dataSize * sizeof(char);
+    byteCnt += dataSize * sizeof(char);
     out.flush();
     out.close();
   }
@@ -84,6 +85,23 @@ struct SSTable {
     delete[] data;
     data = nullptr;
     dataSize = 0;
+  }
+
+  void loadData() {
+    // should be called after cache is loaded
+    if (filename == "") throw new EmptyFileNameException();
+    std::fstream in;
+    in.open(filename, std::ios::in | std::ios::binary);
+    in.seekg(HEADER_SIZE + 10240ul +
+             count * (sizeof(uint64_t) + sizeof(uint64_t)));
+    auto fileSize = file_ops::getFileSize(filename);
+    if (fileSize < 0) throw std::runtime_error("can't get file size");
+    dataSize = fileSize - HEADER_SIZE - 10240ul -
+               count * (sizeof(uint64_t) + sizeof(uint64_t));
+    if (dataSize <= 0) throw std::runtime_error("data size is not positive");
+    if (data != nullptr) delete[] data;
+    data = new uint8_t[dataSize]();
+    in.read(reinterpret_cast<char *>(data), dataSize);
   }
 
   static inline uint64_t calcPos(uint64_t keyNo) {
@@ -102,6 +120,8 @@ struct SSTable {
     in.read(reinterpret_cast<char *>(&this->count), sizeof(uint64_t));
     in.read(reinterpret_cast<char *>(&this->minKey), sizeof(uint64_t));
     in.read(reinterpret_cast<char *>(&this->maxKey), sizeof(uint64_t));
+    in.read(reinterpret_cast<char *>(this->bloomFilter.getDataPtr()),
+            BloomFilter::SIZE * sizeof(bool));
     this->mapping.clear();
     for (uint64_t i = 0; i < this->count; i++) {
       uint64_t key, pos;
@@ -169,7 +189,8 @@ struct SSTable {
         char currentChar;
         std::fstream in;
         in.open(filename, std::ios::in | std::ios::binary);
-        in.seekg(32ul+BloomFilter::SIZE+count*(sizeof(uint64_t)+sizeof(uint64_t))+valPos);
+        in.seekg(32ul + BloomFilter::SIZE +
+                 count * (sizeof(uint64_t) + sizeof(uint64_t)) + valPos);
         while (1) {
           in.read(&currentChar, sizeof(char));
           if (currentChar == '\0') break;

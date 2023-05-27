@@ -5,7 +5,7 @@
 //#include<unistd.h>
 
 namespace file_ops{
-    bool isFile(const std::string &path) {
+    inline bool isFile(const std::string &path) {
         struct stat buf;
         if (stat(path.c_str(), &buf) != 0) {
             return false;
@@ -13,11 +13,19 @@ namespace file_ops{
         return S_ISREG(buf.st_mode);
     }
 
-    bool isDirectory(const std::string &path) {
+    inline bool isDirectory(const std::string &path) {
         struct stat buf;
         if (stat(path.c_str(), &buf) != 0) {
             return false;
         }
         return S_ISDIR(buf.st_mode);
+    }
+
+    inline off_t getFileSize(const std::string &path) {
+        struct stat buf;
+        if (stat(path.c_str(), &buf) != 0) {
+            return -1;
+        }
+        return buf.st_size;
     }
 }
