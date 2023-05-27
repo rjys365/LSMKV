@@ -32,17 +32,7 @@ private:
 
 		// Test after all insertions
 		for (i = 0; i < max; ++i)
-			{
-				EXPECT(std::string(i+1, 's'), store.get(i));
-				// auto str=store.get(i);
-				// if(std::string(i+1, 's')!=str){
-				// 	auto str=store.get(i);
-				// 	std::cout<<"i="<<i<<std::endl;
-				// 	std::cout<<"str="<<str<<std::endl;
-				// 	// std::cout<<"std::string(i+1, 's')="<<std::string(i+1, 's')<<std::endl;
-				// }
-			}
-		
+			EXPECT(std::string(i+1, 's'), store.get(i));
 		phase();
 
 		// Test scan

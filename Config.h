@@ -23,15 +23,17 @@ public:
             }else if(type=="Leveling"){
                 layerType[id]=LevelType::LEVELING;
             }else{
-                throw std::runtime_error("Unknown layer type");
+                throw std::runtime_error("Unknown level type");
             }
         }
     }
     int getLayerSize(int id){
+        if(id<0)throw std::runtime_error("illegal level id");
         if(layerSize.count(id)){
             return layerSize[id];
         }
-        return (1<<(id+1));
+        if(id==0)return 2;
+        return 2*getLayerSize(id-1);
     }
     LevelType getLayerType(int id){
         if(layerType.count(id)){

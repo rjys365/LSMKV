@@ -11,6 +11,7 @@ class KVStore : public KVStoreAPI {
 private:
 	std::string dir;
 	MemTable memTable;
+	uint64_t maxFileNo=0;
 	uint64_t maxTimeStamp=0;
 	Config config;
 	void saveMemTable();

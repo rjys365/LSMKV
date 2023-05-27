@@ -102,6 +102,7 @@ struct SSTable {
     if (data != nullptr) delete[] data;
     data = new uint8_t[dataSize]();
     in.read(reinterpret_cast<char *>(data), dataSize);
+    in.close();
   }
 
   static inline uint64_t calcPos(uint64_t keyNo) {
@@ -129,6 +130,7 @@ struct SSTable {
       in.read(reinterpret_cast<char *>(&pos), sizeof(uint64_t));
       this->mapping.push_back(std::make_pair(key, pos));
     }
+    in.close();
   }
 
   bool findWithoutCache(uint64_t key, std::string &result) {
@@ -169,6 +171,7 @@ struct SSTable {
         rightNo = midNo - 1;
       }
     }
+    in.close();
     return false;
   }
 
@@ -196,6 +199,7 @@ struct SSTable {
           if (currentChar == '\0') break;
           result += currentChar;
         }
+        in.close();
         return true;
       } else if (midKey < key) {
         leftNo = midNo + 1;
@@ -213,5 +217,14 @@ struct SSTable {
     } else {
       return findWithoutCache(key, result);
     }
+  }
+};
+
+struct CompareSSTable {
+  bool operator()(const SSTable &a, const SSTable &b) const {
+    if (a.timestamp == b.timestamp) {
+      return a.minKey < b.minKey;
+    }
+    return a.timestamp < b.timestamp;
   }
 };
