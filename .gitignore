@@ -1,3 +1,6 @@
 .DS_Store
 .vscode/*
 data/*
+*.o
+correctness
+persistence
