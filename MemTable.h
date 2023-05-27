@@ -24,7 +24,7 @@ class MemTable {
     if (foundString == nullptr) {
       size_t newDataSize = currentDataSize + value.length() + 1;
       if (newDataSize + 32ul + 10240ul +
-              2ul * (skiplist.size()) * (sizeof(uint64_t) + sizeof(size_t)) >
+              (skiplist.size()) * (sizeof(uint64_t) + sizeof(size_t)) >
           lsmkv_constants::MAX_FILE_SIZE)
         return false;
       skiplist.insert(key, value);
@@ -34,13 +34,13 @@ class MemTable {
       size_t length = value.length(), newLength = foundString->length();
       if (newLength > length) {
         if (newLength - length + currentDataSize + 32ul + 10240ul +
-                2ul * (skiplist.size()) * (sizeof(uint64_t) + sizeof(size_t)) >
+                (skiplist.size()) * (sizeof(uint64_t) + sizeof(size_t)) >
             lsmkv_constants::MAX_FILE_SIZE)
           willExceed = true;
       }
       if (willExceed) return false;
       *foundString = value;
-      currentDataSize = currentDataSize - length + newLength;
+      currentDataSize = currentDataSize + newLength - length;
     }
     return true;
   }
@@ -68,4 +68,5 @@ class MemTable {
     ret.maxKey = ret.mapping[ret.mapping.size() - 1].first;
     return ret;
   }
+  int itemCnt() { return skiplist.size(); }
 };
