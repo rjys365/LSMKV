@@ -30,7 +30,7 @@ int main() {
   end = std::chrono::high_resolution_clock::now();
   auto getDuration=std::chrono::duration_cast<std::chrono::milliseconds>(end-start);
   double secondPerGet=(double)getDuration.count()/65535.0;
-  std::cout<<"secondPerDel\t"<<secondPerGet<<std::endl;
+  std::cout<<"secondPerGet\t"<<secondPerGet<<std::endl;
   std::cout<<"delPerSecond \t"<<1.0/secondPerGet<<std::endl;
   return 0;
 }

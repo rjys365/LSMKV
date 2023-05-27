@@ -37,7 +37,9 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
         }
         // auto sst_id=std::stoi(sstFilename.substr(0,sstFilename.length()-4));
         auto timestamp = levels[level_id].addExistingSSTable(file_path);
-        this->maxFileNo = std::max(this->maxFileNo, std::stoul(sstFilename.substr(0,sstFilename.length() - 4)));
+        this->maxFileNo = std::max(
+            this->maxFileNo,
+            std::stoul(sstFilename.substr(0, sstFilename.length() - 4)));
       }
     }
   } else {
@@ -47,36 +49,39 @@ KVStore::KVStore(const std::string &dir) : KVStoreAPI(dir), dir(dir) {
 }
 
 void KVStore::saveMemTable() {
-  if(memTable.itemCnt()==0)return;
+  if (memTable.itemCnt() == 0) return;
   maxFileNo++;
   if (!utils::dirExists(dir + "/level-0")) {
     utils::mkdir((dir + "/level-0").c_str());
     levels.emplace_back(0, config.getLayerSize(0), config.getLayerType(0));
   }
-  std::string filename =
-      dir + "/level-0/" + std::to_string(maxFileNo) + ".sst";
+  std::string filename = dir + "/level-0/" + std::to_string(maxFileNo) + ".sst";
   auto sstable = memTable.toSSTable(++maxTimeStamp);
   sstable.toFile(filename);
   sstable.freeData();
   levels[0].addNewSSTable(std::move(sstable));
   memTable.clear();
-  if(levels[0].overSized())compact();
+  if (levels[0].overSized()) compact();
   // TODO:compaction
 }
 
 KVStore::~KVStore() { saveMemTable(); }
 
-void KVStore::compact(){
-  uint64_t currentLevel=0;
-  while(1){
-    if(!levels[currentLevel].overSized())break;
-    if(levels.size()==currentLevel+1ul){
-      if (!utils::dirExists(dir + "/level-"+std::to_string(currentLevel+1))) {
-        utils::mkdir((dir + "/level-"+std::to_string(currentLevel+1)).c_str());
+void KVStore::compact() {
+  uint64_t currentLevel = 0;
+  while (1) {
+    if (!levels[currentLevel].overSized()) break;
+    if (levels.size() == currentLevel + 1ul) {
+      if (!utils::dirExists(dir + "/level-" +
+                            std::to_string(currentLevel + 1))) {
+        utils::mkdir(
+            (dir + "/level-" + std::to_string(currentLevel + 1)).c_str());
       }
-      levels.emplace_back(currentLevel+1, config.getLayerSize(currentLevel+1), config.getLayerType(currentLevel+1));
+      levels.emplace_back(currentLevel + 1,
+                          config.getLayerSize(currentLevel + 1),
+                          config.getLayerType(currentLevel + 1));
     }
-    levels[currentLevel].compactInto(levels[currentLevel+1],maxFileNo,dir);
+    levels[currentLevel].compactInto(levels[currentLevel + 1], maxFileNo, dir);
     currentLevel++;
   }
 }
@@ -93,6 +98,18 @@ void KVStore::put(uint64_t key, const std::string &s) {
     memTable.put(key, s);
   }
 }
+
+void KVStore::putDiag(uint64_t key, const std::string &s,bool &compact) {
+  compact=false;
+  bool memTablePutSuccessful = memTable.put(key, s);
+  if (!memTablePutSuccessful) {
+    compact=true;
+    saveMemTable();
+    memTable.clear();
+    memTable.put(key, s);
+  }
+}
+
 /**
  * Returns the (string) value of the given key.
  * An empty string indicates not found.
@@ -110,6 +127,21 @@ std::string KVStore::get(uint64_t key) {
   }
   return "";
 }
+
+std::string KVStore::getDiag(uint64_t key, bool useCache, bool useBloomfilter) {
+  auto value = memTable.get(key);
+  if (value == "~DELETED~") return "";
+  if (value != "") return value;
+  for (size_t levelId = 0; levelId < levels.size(); levelId++) {
+    std::string value;
+    if (levels[levelId].find(key, value, useCache, useBloomfilter)) {
+      if (value == "~DELETED~") return "";
+      return value;
+    }
+  }
+  return "";
+}
+
 /**
  * Delete the given key-value pair if it exists.
  * Returns false iff the key is not found.
@@ -127,8 +159,8 @@ bool KVStore::del(uint64_t key) {
 void KVStore::reset() {
   memTable.clear();
   levels.clear();
-  maxFileNo=0;
-  maxTimeStamp=0;
+  maxFileNo = 0;
+  maxTimeStamp = 0;
   std::vector<std::string> paths;
   utils::scanDir(dir, paths);
   for (const auto &path : paths) {

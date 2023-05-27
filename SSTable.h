@@ -219,12 +219,3 @@ struct SSTable {
     }
   }
 };
-
-struct CompareSSTable {
-  bool operator()(const SSTable &a, const SSTable &b) const {
-    if (a.timestamp == b.timestamp) {
-      return a.minKey < b.minKey;
-    }
-    return a.timestamp < b.timestamp;
-  }
-};
