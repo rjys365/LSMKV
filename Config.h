@@ -39,7 +39,7 @@ public:
         if(layerType.count(id)){
             return layerType[id];
         }
-        if(id==0)return LevelType::LEVELING;
+        if(id==0)return LevelType::TIERING;
         return LevelType::LEVELING;
     }
 };
